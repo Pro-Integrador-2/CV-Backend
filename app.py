@@ -19,7 +19,7 @@ s3_client = boto3.client('s3', region_name=AWS_REGION,
                          aws_access_key_id=AWS_ACCESS_KEY_ID,
                          aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 
-rekognition_client = boto3.client('rekognition', region_name=AWS_REGION,
+rekognition_client = boto3.client('rekognition', region_name="us-east-1",
                                   aws_access_key_id=AWS_ACCESS_KEY_ID,
                                   aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 
@@ -31,17 +31,17 @@ def upload_video():
     file = request.files['video']
     if file.filename == '':
         return "No selected file", 400
-    print('S3_BUCKET_NAME:', S3_BUCKET_NAME)
+
     filename = secure_filename(file.filename)
     print('filename:', filename, file.filename)
-    print(s3_client.upload_fileobj(file, S3_BUCKET_NAME, filename, ExtraArgs={'ContentType': 'video/webm'}))
+    s3_client.upload_fileobj(file, S3_BUCKET_NAME, filename, ExtraArgs={'ContentType': 'video/webm'})
 
     response = rekognition_client.start_label_detection(
         Video={'S3Object': {'Bucket': S3_BUCKET_NAME, 'Name': filename}},
         MinConfidence=50
     )
-    print(response)
-    return jsonify({}), 200
+    #falta getLabelDetection
+    return jsonify(response), 200
 
 
 if __name__ == '__main__':
