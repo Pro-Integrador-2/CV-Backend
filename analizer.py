@@ -1,8 +1,6 @@
 import json
 import os
-import sys
 import time
-
 import boto3
 from dotenv import load_dotenv
 
@@ -12,11 +10,10 @@ load_dotenv()
 class VideoDetect:
     jobId = ''
 
-    roleArn = os.getenv('IAM_ROLE_ARN')
+
     bucket = os.getenv('S3_BUCKET_NAME')
     video = ''
     startJobId = ''
-
     sqsQueueUrl = ''
     snsTopicArn = os.getenv('SNS_TOPIC_ARN')
     processType = ''
@@ -25,58 +22,49 @@ class VideoDetect:
     rek = boto3.client('rekognition', region_name="us-east-1",
                                   aws_access_key_id=AWS_ACCESS_KEY_ID,
                                   aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
-    sqs = boto3.client('sqs')
-    sns = boto3.client('sns')
+    sqs = boto3.resource('sqs', region_name="us-east-1",
+                                  aws_access_key_id=AWS_ACCESS_KEY_ID,
+                                  aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
+    sns = boto3.resource('sns', region_name="us-east-1",
+                                  aws_access_key_id=AWS_ACCESS_KEY_ID,
+                                  aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 
+    iam = boto3.resource('iam', region_name="us-east-1",
+                                  aws_access_key_id=AWS_ACCESS_KEY_ID,
+                                  aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
+    topic = None
+    queue = None
     def __init__(self, video):
         self.video = video
 
     def GetSQSMessageSuccess(self):
-        jobFound = False
-        succeeded = False
-
-        dotLine = 0
-        while not jobFound:
-            sqsResponse = self.sqs.receive_message(QueueUrl=self.sqsQueueUrl, MessageAttributeNames=['ALL'],
-                                                   MaxNumberOfMessages=10)
-            if sqsResponse:
-                if 'Messages' not in sqsResponse:
-                    if dotLine < 40:
-                        print('.', end='')
-                        dotLine = dotLine + 1
-                    else:
-                        print()
-                        dotLine = 0
-                    sys.stdout.flush()
-                    time.sleep(5)
-                    continue
-
-                for message in sqsResponse['Messages']:
+        status = None
+        job_done = False
+        while not job_done:
+            messages = self.queue.receive_messages(
+                MaxNumberOfMessages=1, WaitTimeSeconds=5
+            )
+            print(messages)
+            if messages:
+                for message in messages:
                     notification = json.loads(message['Body'])
                     rekMessage = json.loads(notification['Message'])
                     print(rekMessage['JobId'])
-                    print(rekMessage['Status'])
                     if rekMessage['JobId'] == self.startJobId:
+                        status = rekMessage['status']
+                        print(status)
                         print('Matching Job Found:' + rekMessage['JobId'])
-                        jobFound = True
-                        if (rekMessage['Status'] == 'SUCCEEDED'):
-                            succeeded = True
+                        job_done = True
+                        print(notification)
+                        message.delete()
+                        print(notification)
 
-                        self.sqs.delete_message(QueueUrl=self.sqsQueueUrl,
-                                                ReceiptHandle=message['ReceiptHandle'])
-                    else:
-                        print("Job didn't match:" +
-                              str(rekMessage['JobId']) + ' : ' + self.startJobId)
-                    # Delete the unknown message. Consider sending to dead letter queue
-                    self.sqs.delete_message(QueueUrl=self.sqsQueueUrl,
-                                            ReceiptHandle=message['ReceiptHandle'])
-
-        return succeeded
+        return status
 
     def StartLabelDetection(self):
         response = self.rek.start_label_detection(Video={'S3Object': {'Bucket': self.bucket, 'Name': self.video}},
-                                                  NotificationChannel={'RoleArn': self.roleArn,
-                                                                       'SNSTopicArn': self.snsTopicArn},
+                                                  NotificationChannel={'RoleArn': self.role.arn,
+                                                                       'SNSTopicArn': self.topic.arn},
                                                   MinConfidence=90,
                                                   )
 
@@ -138,56 +126,74 @@ class VideoDetect:
                     finished = True
 
     def CreateTopicandQueue(self):
-
         millis = str(int(round(time.time() * 1000)))
 
         # Create SNS topic
-
-        snsTopicName = "AmazonRekognitionExample" + millis
-
-        topicResponse = self.sns.create_topic(Name=snsTopicName)
-        self.snsTopicArn = topicResponse['TopicArn']
+        resource_name = "AmazonRekognition-CV" + millis
+        self.topic = self.sns.create_topic(Name=resource_name)
 
         # create SQS queue
-        sqsQueueName = "AmazonRekognitionQueue" + millis
-        self.sqs.create_queue(QueueName=sqsQueueName)
-        self.sqsQueueUrl = self.sqs.get_queue_url(QueueName=sqsQueueName)['QueueUrl']
-
-        attribs = self.sqs.get_queue_attributes(QueueUrl=self.sqsQueueUrl,
-                                                AttributeNames=['QueueArn'])['Attributes']
-
-        sqsQueueArn = attribs['QueueArn']
-
-        # Subscribe SQS queue to SNS topic
-        self.sns.subscribe(
-            TopicArn=self.snsTopicArn,
-            Protocol='sqs',
-            Endpoint=sqsQueueArn)
-
-        # Authorize SNS to write SQS queue
-        policy = """{{
-  "Version":"2012-10-17",
-  "Statement":[
-    {{
-      "Sid":"MyPolicy",
-      "Effect":"Allow",
-      "Principal" : {{"AWS" : "*"}},
-      "Action":"SQS:SendMessage",
-      "Resource": "{}",
-      "Condition":{{
-        "ArnEquals":{{
-          "aws:SourceArn": "{}"
-        }}
-      }}
-    }}
-  ]
-}}""".format(sqsQueueArn, self.snsTopicArn)
-
-        response = self.sqs.set_queue_attributes(
-            QueueUrl=self.sqsQueueUrl,
+        self.queue = self.sqs.create_queue(
+            QueueName=resource_name, Attributes={"ReceiveMessageWaitTimeSeconds": "5"}
+        )
+        queue_arn = self.queue.attributes["QueueArn"]
+        policy = f"""{{
+          "Version":"2012-10-17",
+          "Statement":[
+            {{
+              "Sid":"MyPolicy",
+              "Effect":"Allow",
+              "Principal" : {{"AWS" : "*"}},
+              "Action":"SQS:SendMessage",
+              "Resource": "{queue_arn}",
+              "Condition":{{
+                "ArnEquals":{{
+                  "aws:SourceArn": "{self.topic.arn}"
+                }}
+              }}
+            }}
+          ]
+        }}"""
+        self.queue.set_attributes(
             Attributes={
-                'Policy': policy
+                "Policy": policy
+            }
+        )
+        self.topic.subscribe(Protocol="sqs", Endpoint=queue_arn)
+
+        # This role lets Amazon Rekognition publish to the topic. Its Amazon Resource
+        # Name (ARN) is sent each time a job is started.
+        self.role = self.iam.create_role(
+            RoleName=resource_name,
+            AssumeRolePolicyDocument=json.dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"Service": "rekognition.amazonaws.com"},
+                            "Action": "sts:AssumeRole",
+                        }
+                    ],
+                }
+            ),
+        )
+        policy = self.iam.create_policy(
+            PolicyName=resource_name,
+            PolicyDocument=json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": "sns:Publish",
+                        "Resource": self.topic.arn
+                    }
+                ]
             })
+        )
+
+        self.role.attach_policy(PolicyArn=policy.arn)
+
 
     def DeleteTopicandQueue(self):
         self.sqs.delete_queue(QueueUrl=self.sqsQueueUrl)
