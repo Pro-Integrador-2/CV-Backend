@@ -3,11 +3,13 @@ import tempfile
 import cv2
 import boto3
 import json
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from dotenv import load_dotenv
 import base64
 from textgenerate import make_script
+from voicegenerate import make_voice
+
 
 app = Flask(__name__)
 CORS(app)
@@ -69,10 +71,12 @@ def uploadImage():
             labels = detect_labels_in_image(image_bytes)
             newlabels =json.dumps(labels)
             mytext = make_script(newlabels)
-            print('este testico -----------', mytext)
+            print('objetos -----------> ', mytext)
             #print(f"Labels: {labels}")
+            audio_file_path = make_voice(mytext)
 
-        return jsonify({"success": mytext}), 200
+        #return jsonify({"success": mytext}), 200
+        return send_file(audio_file_path, as_attachment=True, mimetype='audio/mp3')
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
