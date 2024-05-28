@@ -2,10 +2,13 @@ import os
 import tempfile
 import cv2
 import boto3
+import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 import base64
+from textgenerate import make_script
+
 app = Flask(__name__)
 CORS(app)
 
@@ -64,11 +67,18 @@ def uploadImage():
         image_bytes = base64.b64decode(image_data)
         if image_bytes:
             labels = detect_labels_in_image(image_bytes)
-            print(f"Labels: {labels}")
+            newlabels =json.dumps(labels)
+            mytext = make_script(newlabels)
+            print('este testico -----------', mytext)
+            #print(f"Labels: {labels}")
 
-        return jsonify({"success": labels}), 200
+        return jsonify({"success": mytext}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+
+
+
 def detect_labels_in_image(image_bytes):
     client = boto3.client('rekognition', region_name="us-east-1",
                           aws_access_key_id=AWS_ACCESS_KEY_ID,
