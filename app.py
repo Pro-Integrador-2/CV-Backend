@@ -29,29 +29,6 @@ def extract_frame(video_path):
     vidcap.release()
     return image_bytes
 
-@app.route('/upload', methods=['POST'])
-def upload_video():
-    video_file = request.files['video']
-    tmp_file_path = None
-    frame = None
-    labels = []
-
-    try:
-        # Use a temporary file to store the uploaded video
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as tmp_file:
-            tmp_file_path = tmp_file.name
-            video_file.save(tmp_file_path)
-
-        frame = extract_frame(tmp_file_path)
-        if frame:
-            labels = detect_labels_in_image(frame)
-            print(f"Labels: {labels}")
-
-    except Exception as e:
-        print(f"Error processing video: {e}")
-
-
-    return jsonify({'labels': labels})
 
 @app.route('/upload-image', methods=['POST'])
 def uploadImage():
