@@ -49,7 +49,6 @@ def uploadImage():
             newlabels =json.dumps(labels)
             mytext = make_script(newlabels)
             print('objetos -----------> ', mytext)
-            #print(f"Labels: {labels}")
             audio_file_path = make_voice(mytext)
 
         #return jsonify({"success": mytext}), 200
@@ -70,6 +69,22 @@ def detect_labels_in_image(image_bytes):
         MinConfidence=75
     )
     return response['Labels']
+
+@app.route('/voice-guide', methods=['POST'])
+def initVoiceGuide():
+    data = request.get_json()
+
+    if not data or 'text' not in data:
+        return jsonify({"error": "Missing text or language"}), 400
+
+
+
+    try:
+        audio_path = make_voice(**data)
+        return send_file(audio_path, as_attachment=True, download_name='output.mp3', mimetype='audio/mp3')
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
