@@ -34,10 +34,11 @@ def extract_frame(video_path):
 def uploadImage():
     data = request.get_json()
 
-    if not data or 'image' not in data:
-        return jsonify({"error": "No image provided"}), 400
+    if not data or 'image' not in data or 'language' not in data:
+        return jsonify({"error": "No image or language provided"}), 400
 
     image_data = data['image']
+    language = data['language']
 
     if image_data.startswith('data:image'):
         image_data = image_data.split(',')[1]
@@ -47,9 +48,9 @@ def uploadImage():
         if image_bytes:
             labels = detect_labels_in_image(image_bytes)
             newlabels =json.dumps(labels)
-            mytext = make_script(newlabels)
+            mytext = make_script(newlabels, language)
             print('objetos -----------> ', mytext)
-            audio_file_path = make_voice(mytext)
+            audio_file_path = make_voice(mytext, language)
 
         #return jsonify({"success": mytext}), 200
         return send_file(audio_file_path, as_attachment=True, mimetype='audio/mp3')

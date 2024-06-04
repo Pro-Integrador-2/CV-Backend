@@ -18,7 +18,7 @@ def make_voice(text, language_code = "es"):
         'en': 'Joanna',  # Inglés
         'fr': 'Celine'  # Francés
     }
-    voice_id = voices.get(language_code, 'Lucia')
+    voice_id = voices.get(language_code)
 
     # Generar el audio a partir del texto
     response = polly_client.synthesize_speech(
