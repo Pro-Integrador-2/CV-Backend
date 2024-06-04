@@ -34,25 +34,22 @@ def extract_frame(video_path):
 def uploadImage():
     data = request.get_json()
 
-    if not data or 'image' not in data or 'language' not in data:
-        return jsonify({"error": "No image or language provided"}), 400
+    if not data or 'image' not in data:
+        return jsonify({"error": "No image provided"}), 400
 
     image_data = data['image']
-    language = data['language']
+    language = data.get("language_code", "es")
 
     if image_data.startswith('data:image'):
         image_data = image_data.split(',')[1]
-
+    audio_file_path = None
     try:
         image_bytes = base64.b64decode(image_data)
         if image_bytes:
             labels = detect_labels_in_image(image_bytes)
-            newlabels =json.dumps(labels)
-            mytext = make_script(newlabels, language)
+            mytext = make_script(labels, language)
             print('objetos -----------> ', mytext)
             audio_file_path = make_voice(mytext, language)
-
-        #return jsonify({"success": mytext}), 200
         return send_file(audio_file_path, as_attachment=True, mimetype='audio/mp3')
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -69,15 +66,15 @@ def detect_labels_in_image(image_bytes):
         MaxLabels=10,
         MinConfidence=75
     )
-    return response['Labels']
+    return json.dumps(response['Labels'])
 
 @app.route('/voice-guide', methods=['POST'])
 def initVoiceGuide():
     data = request.get_json()
-
     language = data.get("language_code", "es")
     try:
         welcome_text = make_script_welcome(language)
+        print(len(welcome_text.split()))
         audio_path = make_voice(welcome_text, language)
         return send_file(audio_path, as_attachment=True, download_name='output.mp3', mimetype='audio/mp3')
     except Exception as e:
