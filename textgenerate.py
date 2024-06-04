@@ -67,7 +67,6 @@ def make_script_welcome(language_code='es'):
             messages=messages,
         )
         little_paragraph = chat_response.choices[0].message.content.strip()
-        print(len(little_paragraph.split()), little_paragraph)
         return little_paragraph
     except Exception as e:
         print(e)
