@@ -7,7 +7,7 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from dotenv import load_dotenv
 import base64
-from textgenerate import make_script
+from textgenerate import make_script, make_script_welcome
 from voicegenerate import make_voice
 
 
@@ -74,13 +74,10 @@ def detect_labels_in_image(image_bytes):
 def initVoiceGuide():
     data = request.get_json()
 
-    if not data or 'text' not in data:
-        return jsonify({"error": "Missing text or language"}), 400
-
-
-
+    language = data.get("language_code", "es")
     try:
-        audio_path = make_voice(**data)
+        welcome_text = make_script_welcome(language)
+        audio_path = make_voice(welcome_text, language)
         return send_file(audio_path, as_attachment=True, download_name='output.mp3', mimetype='audio/mp3')
     except Exception as e:
         return jsonify({"error": str(e)}), 500
