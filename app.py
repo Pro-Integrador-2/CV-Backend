@@ -47,6 +47,7 @@ def uploadImage():
         image_bytes = base64.b64decode(image_data)
         if image_bytes:
             labels = detect_labels_in_image(image_bytes)
+            print('mis NUEVITOS labelssss --------- ', labels)
             mytext = make_script(labels, language)
             print('objetos -----------> ', mytext)
             audio_file_path = make_voice(mytext, language)
@@ -54,6 +55,15 @@ def uploadImage():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
+
+def clean_labels(initialLabels):
+    filtered_names = []
+    
+    for obj in initialLabels:
+        if not obj['Parents'] and not any(category['Name'] == "Colors and Visual Composition" for category in obj['Categories']):
+            filtered_names.append(obj['Name'])
+    
+    return filtered_names
 
 
 
@@ -66,7 +76,17 @@ def detect_labels_in_image(image_bytes):
         MaxLabels=10,
         MinConfidence=75
     )
-    return json.dumps(response['Labels'])
+
+    labels = response['Labels']
+    print("VIEJOS labels ---------", labels)
+    filtered_labels = clean_labels(labels)
+    
+    return json.dumps(filtered_labels)
+
+
+
+
+
 
 @app.route('/voice-guide', methods=['POST'])
 def initVoiceGuide():
