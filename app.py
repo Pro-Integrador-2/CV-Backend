@@ -11,16 +11,14 @@ from textgenerate import make_script, make_script_welcome
 from voicegenerate import make_voice
 
 app = Flask(__name__)
-CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+CORS(app, resources={r"/*": {"origins": "*"}})
+socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
 
 load_dotenv()
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 
-# Diccionario para almacenar las detecciones y la última actualización de cada conexión
 connections = {}
-
 
 @socketio.on('connect')
 def handle_connect():
@@ -28,14 +26,12 @@ def handle_connect():
     connections[session_id] = {'last_detection': None, 'last_update': datetime.utcnow()}
     print(f"Client connected: {session_id}")
 
-
 @socketio.on('disconnect')
 def handle_disconnect():
     session_id = request.sid
     if session_id in connections:
         del connections[session_id]
     print(f"Client disconnected: {session_id}")
-
 
 @socketio.on('upload_image')
 def handle_upload_image(data):
@@ -85,7 +81,6 @@ def handle_upload_image(data):
     except Exception as e:
         emit('error', {"error": str(e)})
 
-
 @socketio.on('voice_guide')
 def handle_voice_guide(data):
     language = data.get("language_code", "es")
@@ -99,6 +94,6 @@ def handle_voice_guide(data):
     except Exception as e:
         emit('error', {"error": str(e)})
 
-
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    socketio.run(app, host='0.0.0.0', port=port)
