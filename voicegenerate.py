@@ -12,7 +12,6 @@ def make_voice(text, language_code = "es"):
     polly_client = boto3.client('polly', region_name='us-east-1',
                                 aws_access_key_id=AWS_ACCESS_KEY_ID,
                                 aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
-
     voices = {
         'es': 'Lucia',  # Español
         'en': 'Joanna',  # Inglés
