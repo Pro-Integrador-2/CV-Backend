@@ -63,9 +63,7 @@ def handle_upload_image(data):
 def handle_voice_guide(data):
     language = data.get("language_code", "es")
     try:
-        print("voice_guide")
         welcome_text = make_script_welcome(language)
-        print(len(welcome_text.split()))
         audio_path = make_voice(welcome_text, language)
         with open(audio_path, 'rb') as f:
             audio_data = f.read()
