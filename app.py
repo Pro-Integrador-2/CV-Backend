@@ -3,20 +3,22 @@ import tempfile
 import cv2
 import boto3
 import json
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, jsonify, send_file
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 from dotenv import load_dotenv
 import base64
 from textgenerate import make_script, make_script_welcome
 from voicegenerate import make_voice
 
-
 app = Flask(__name__)
 CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 load_dotenv()
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+
 
 def extract_frame(video_path):
     vidcap = cv2.VideoCapture(video_path)
@@ -30,19 +32,18 @@ def extract_frame(video_path):
     return image_bytes
 
 
-@app.route('/upload-image', methods=['POST'])
-def uploadImage():
-    data = request.get_json()
-
+@socketio.on('upload_image')
+def handle_upload_image(data):
     if not data or 'image' not in data:
-        return jsonify({"error": "No image provided"}), 400
+        emit('error', {"error": "No image provided"})
+        return
 
     image_data = data['image']
     language = data.get("language_code", "es")
 
     if image_data.startswith('data:image'):
         image_data = image_data.split(',')[1]
-    audio_file_path = None
+
     try:
         image_bytes = base64.b64decode(image_data)
         if image_bytes:
@@ -50,11 +51,28 @@ def uploadImage():
             mytext = make_script(labels, language)
             print('objetos -----------> ', mytext)
             audio_file_path = make_voice(mytext, language)
-        return send_file(audio_file_path, as_attachment=True, mimetype='audio/mp3')
+            with open(audio_file_path, 'rb') as f:
+                audio_data = f.read()
+            audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+            emit('audio-detection', {'audio': audio_base64})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
+        emit('error', {"error": str(e)})
 
+
+@socketio.on('voice_guide')
+def handle_voice_guide(data):
+    language = data.get("language_code", "es")
+    try:
+        print("voice_guide")
+        welcome_text = make_script_welcome(language)
+        print(len(welcome_text.split()))
+        audio_path = make_voice(welcome_text, language)
+        with open(audio_path, 'rb') as f:
+            audio_data = f.read()
+        audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+        emit('audio-guide', {'audio': audio_base64})
+    except Exception as e:
+        emit('error', {"error": str(e)})
 
 
 def detect_labels_in_image(image_bytes):
@@ -68,19 +86,6 @@ def detect_labels_in_image(image_bytes):
     )
     return json.dumps(response['Labels'])
 
-@app.route('/voice-guide', methods=['POST'])
-def initVoiceGuide():
-    data = request.get_json()
-    language = data.get("language_code", "es")
-    try:
-        welcome_text = make_script_welcome(language)
-        print(len(welcome_text.split()))
-        audio_path = make_voice(welcome_text, language)
-        return send_file(audio_path, as_attachment=True, download_name='output.mp3', mimetype='audio/mp3')
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 
 if __name__ == '__main__':
-    app.run(debug=True)
-
+    socketio.run(app, debug=True)
