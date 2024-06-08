@@ -40,7 +40,6 @@ def make_script(text, language='es'):
 
         return little_paragraph
     except Exception as e:
-        print(e)
         return "Error con Mistral"
 
 
@@ -66,9 +65,7 @@ def make_script_welcome(language_code='es'):
                     "Las palabras \"Clear Vision\" son un nombre propio y no deseo traducirlas"
                     f"El texto de respuesta debe estar en {language}.")
 
-
         messages = [ChatMessage(role="user", content=contexto)]
-
         chat_response = client.chat(
             model=model,
             response_format={"type": "text"},
@@ -77,5 +74,4 @@ def make_script_welcome(language_code='es'):
         little_paragraph = chat_response.choices[0].message.content.strip()
         return little_paragraph
     except Exception as e:
-        print(e)
         return "Error con Mistral"

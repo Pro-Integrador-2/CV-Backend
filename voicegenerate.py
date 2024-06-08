@@ -1,9 +1,7 @@
 import boto3
 import os
 import tempfile
-from dotenv import load_dotenv
 
-load_dotenv()
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 
@@ -25,10 +23,9 @@ def make_voice(text, language_code = "es"):
         OutputFormat='mp3',
         VoiceId=voice_id
     )
-    
+
     # Guardar el audio en un archivo temporal
     with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp_file:
         tmp_file_path = tmp_file.name
         tmp_file.write(response['AudioStream'].read())
-
     return tmp_file_path

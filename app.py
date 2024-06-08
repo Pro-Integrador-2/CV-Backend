@@ -1,12 +1,17 @@
+import eventlet
+eventlet.monkey_patch()
+
 import base64
 import json
 import os
+from datetime import datetime, timedelta
+
 import boto3
 from dotenv import load_dotenv
 from flask import Flask, request
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
-from datetime import datetime, timedelta
+
 from textgenerate import make_script, make_script_welcome
 from voicegenerate import make_voice
 
@@ -37,19 +42,20 @@ def handle_disconnect():
     print(f"Client disconnected: {session_id}")
 
 
+def detect_labels_in_image(image_bytes):
+    client = boto3.client('rekognition', region_name="us-east-1",
+                          aws_access_key_id=AWS_ACCESS_KEY_ID,
+                          aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
+    response = client.detect_labels(
+        Image={'Bytes': image_bytes},
+        MaxLabels=10,
+        MinConfidence=75
+    )
+    return json.dumps(response['Labels'])
+
+
 @socketio.on('upload_image')
 def handle_upload_image(data):
-    def detect_labels_in_image(image_bytes):
-        client = boto3.client('rekognition', region_name="us-east-1",
-                              aws_access_key_id=AWS_ACCESS_KEY_ID,
-                              aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
-        response = client.detect_labels(
-            Image={'Bytes': image_bytes},
-            MaxLabels=10,
-            MinConfidence=75
-        )
-        return json.dumps(response['Labels'])
-
     if not data or 'image' not in data:
         emit('error', {"error": "No image provided"})
         return
@@ -97,7 +103,7 @@ def handle_voice_guide(data):
         audio_base64 = base64.b64encode(audio_data).decode('utf-8')
         emit('audio-guide', {'audio': audio_base64})
     except Exception as e:
-        emit('error', {"error": str(e)})
+        emit('error', {"error-guide": str(e)})
 
 
 if __name__ == '__main__':
