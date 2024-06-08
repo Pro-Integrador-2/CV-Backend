@@ -87,6 +87,7 @@ def handle_upload_image(data):
                     with open(audio_file_path, 'rb') as f:
                         audio_data = f.read()
                     audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+                    print("Sent", language)
                     emit('audio-detection', {'audio': audio_base64, 'session_id': session_id})
     except Exception as e:
         emit('error', {"error": str(e)})
