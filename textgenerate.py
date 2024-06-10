@@ -3,7 +3,6 @@ import os
 from dotenv import load_dotenv
 from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ChatMessage
-
 load_dotenv()
 api_key = os.getenv('API_KEY_MISTRAL')
 
@@ -63,9 +62,6 @@ def make_script_welcome(language_code='es'):
         languages = {
             'es': 'español',
             'en': 'inglés',
-            'fr': 'francés',
-            'pt': 'portugues',
-            'it': 'italiano'
         }
         language = languages.get(language_code, 'español')
         text = ("Bienvenido a Clear Vision, una herramienta innovadora para personas con discapacidad visual. "
