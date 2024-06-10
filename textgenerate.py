@@ -19,9 +19,21 @@ def make_script(text, language='es'):
 
         if language == 'es':
             salida_esperada = "Se ha identificado una llave y una persona"
-            instrucciones = """ 1. Si el texto está vacío, la salida debe ser: 'No he podido identificar objetos' \n2. Si se identifican objetos en el texto, la salida debe seguir el formato: "Se ha identificado...". \n3. Elimina sinónimos, palabras redundantes y sugerencias o inferencias. \n 4. No debo proporcionar demasiados detalles, solo los nombres de los objetos. \n 5. Siempre debo comenzar la respuesta con "Se ha identificado..." """
-            contexto = f"""Soy un asistente encargado de leer el siguiente texto: "{text}". Mi tarea es generar una descripción breve que mencione únicamente los nombres de los objetos identificados en español, debo seguir las siguientes instrucciones: {instrucciones}, un ejemplo del texto generado es: {salida_esperada}"""
-
+            instrucciones = (
+                "1. Si el texto está vacío, la salida debe ser: 'No he podido identificar objetos'.\n"
+                "2. Si se identifican objetos en el texto, la salida debe seguir el formato: 'Se ha identificado...'.\n"
+                "3. Elimina sinónimos, palabras redundantes y sugerencias o inferencias.\n"
+                "4. No proporcionar demasiados detalles, solo los nombres de los objetos.\n"
+                "5. Siempre debo comenzar la respuesta con 'Se ha identificado...'.\n"
+                "6. Siempre debo mencionar un mismo objeto una sola vez, aunque aparezca varias veces en la lista de objetos identificados.\n"
+                "7. Las respuestas deben ser concisas y claras."
+            )
+            contexto = (
+                f"Soy un asistente encargado de procesar la siguiente lista de etiquetas detectadas en imágenes tomadas en un periodo de 4 segundos: \"{text}\". "
+                f"Mi tarea es generar una descripción breve que mencione únicamente los nombres de los objetos identificados en todas las imagenes en español. "
+                f"Debo seguir las siguientes instrucciones: {instrucciones} "
+                f"Un ejemplo del texto generado es: {salida_esperada}."
+            )
         elif language == 'en':
             salida_esperada = "A key and a person have been identified"
             instrucciones = """1. If the text is empty, the output should be: 'I couldn't identify any objects' \n 2. If objects are identified in the text, the output should follow the format: "The following objects have been identified... \n 3.Remove synonyms, redundant words, and suggestions or inferences. \n 4. I should not provide too many details, only the names of the objects. \n 5.I should always start the response with "The following objects have been identified..."  """
