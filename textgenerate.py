@@ -88,3 +88,4 @@ def make_script_welcome(language_code='es'):
         return little_paragraph
     except Exception as e:
         return "Error con Mistral"
+
