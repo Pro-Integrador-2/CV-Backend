@@ -1,4 +1,5 @@
 import eventlet
+
 eventlet.monkey_patch()
 
 import base64
@@ -14,6 +15,7 @@ from flask_socketio import SocketIO, emit
 
 from textgenerate import make_script, make_script_welcome
 from voicegenerate import make_voice
+from label_comparation import make_label_comparison
 
 app = Flask(__name__)
 CORS(app)
@@ -23,7 +25,6 @@ load_dotenv()
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 
-# Diccionario para almacenar las detecciones y la última actualización de cada conexión
 connections = {}
 
 
@@ -31,7 +32,6 @@ connections = {}
 def handle_connect():
     session_id = request.sid
     connections[session_id] = {'last_detection': None, 'last_update': datetime.utcnow()}
-    print(f"Client connected: {session_id}")
 
 
 @socketio.on('disconnect')
@@ -39,7 +39,6 @@ def handle_disconnect():
     session_id = request.sid
     if session_id in connections:
         del connections[session_id]
-    print(f"Client disconnected: {session_id}")
 
 
 def detect_labels_in_image(image_bytes):
@@ -56,6 +55,7 @@ def detect_labels_in_image(image_bytes):
 
 @socketio.on('upload_image')
 def handle_upload_image(data):
+    global connections
     if not data or 'image' not in data:
         emit('error', {"error": "No image provided"})
         return
@@ -71,7 +71,7 @@ def handle_upload_image(data):
         if image_bytes:
             labels = detect_labels_in_image(image_bytes)
             currentDetection = make_script(labels, language)
-            print('objetos -----------> ', currentDetection)
+
             current_time = datetime.utcnow()
             session_id = request.sid
 
@@ -79,7 +79,14 @@ def handle_upload_image(data):
                 last_detection = connections[session_id]['last_detection']
                 last_update = connections[session_id]['last_update']
 
-                if currentDetection != last_detection or current_time - last_update > timedelta(minutes=1):
+
+                if last_detection:
+                    comparison_result = make_label_comparison(currentDetection, last_detection)
+
+                else:
+                    comparison_result = True
+
+                if comparison_result or current_time - last_update > timedelta(minutes=1):
                     connections[session_id]['last_detection'] = currentDetection
                     connections[session_id]['last_update'] = current_time
 
@@ -87,7 +94,7 @@ def handle_upload_image(data):
                     with open(audio_file_path, 'rb') as f:
                         audio_data = f.read()
                     audio_base64 = base64.b64encode(audio_data).decode('utf-8')
-                    print("Sent", language)
+
                     emit('audio-detection', {'audio': audio_base64, 'session_id': session_id})
     except Exception as e:
         emit('error', {"error": str(e)})
@@ -109,3 +116,4 @@ def handle_voice_guide(data):
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
+
