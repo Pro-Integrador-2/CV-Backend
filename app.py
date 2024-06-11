@@ -71,7 +71,7 @@ def handle_upload_image(data):
         if image_bytes:
             labels = detect_labels_in_image(image_bytes)
             currentDetection = make_script(labels, language)
-            # print('objetos -----------> ', currentDetection)
+
             current_time = datetime.utcnow()
             session_id = request.sid
 
@@ -82,7 +82,7 @@ def handle_upload_image(data):
 
                 if last_detection:
                     comparison_result = make_label_comparison(currentDetection, last_detection)
-                    # print('comparacion -----------> ', comparison_result)
+
                 else:
                     comparison_result = True
 
