@@ -26,8 +26,6 @@ def compare_images(image1_bytes, image2_bytes):
 
     # Calcular el puntaje de similitud (menor es mejor)
     similarity_score = sum(match.distance for match in matches) / len(matches)
-
-    print(f'El puntaje de similitud entre las dos imágenes es: {similarity_score}')
     return similarity_score > 30
     
 
