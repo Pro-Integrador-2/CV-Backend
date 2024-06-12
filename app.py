@@ -43,10 +43,21 @@ def handle_disconnect():
 
 def clean_labels(initialLabels):
     filtered_names = []
+    parent_names = set()
+    identified_names = set()
+    delectlist=['Lighting','Lightings','Photography']
 
     for obj in initialLabels:
-        if not obj['Parents'] and not any(category['Name'] == "Colors and Visual Composition" for category in obj['Categories']):
-            filtered_names.append(obj['Name'])
+        for parent in obj['Parents']:
+            parent_names.add(parent['Name'])
+        identified_names.add(obj['Name'])
+
+    for obj in initialLabels:
+        if obj['Confidence'] > 80 and obj['Name'] not in delectlist: 
+            if (obj['Name'] not in parent_names and not obj['Parents'] ) or (obj['Name'] in parent_names and not obj['Parents']): 
+                if obj['Name'] in identified_names:  
+                    if not any(category['Name'] in ["Colors and Visual Composition"] for category in obj['Categories']):
+                        filtered_names.append(obj['Name'])
 
     return filtered_names
 
@@ -60,7 +71,9 @@ def detect_labels_in_image(image_bytes):
         MinConfidence=75
     )
     labels = response['Labels']
+    print('LABELS VIEJOOOS',labels)
     filtered_labels = clean_labels(labels)
+    print('LABELS NUEVITOS-------', filtered_labels)
 
     return json.dumps(filtered_labels)
 
