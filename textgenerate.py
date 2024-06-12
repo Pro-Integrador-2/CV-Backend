@@ -7,7 +7,7 @@ from mistralai.models.chat_completion import ChatMessage
 load_dotenv()
 api_key = os.getenv('API_KEY_MISTRAL')
 
-# model = "mistral-large-latest"
+#model = "mistral-large-latest"
 model = "open-mistral-7b"
 client = MistralClient(api_key=api_key)
 
@@ -19,7 +19,7 @@ def make_script(text, language='es'):
 
         if language == 'es':
             salida_esperada = "Se ha identificado una llave y una persona"
-            instrucciones = """ 1. Si el texto está vacío, la salida debe ser: 'No he podido identificar objetos' \n2. Si se identifican objetos en el texto, la salida debe seguir el formato: "Se ha identificado...". \n3. Elimina sinónimos, palabras redundantes y sugerencias o inferencias. \n 4. No debo proporcionar demasiados detalles, solo los nombres de los objetos. \n 5. Siempre debo comenzar la respuesta con "Se ha identificado..." """
+            instrucciones = """ 1. Si el texto está vacío, la salida debe ser: 'No he podido identificar objetos' \n2. Si se identifican objetos en el texto, la salida debe seguir el formato: "Se ha identificado...". \n3. Utiliza términos generales en lugar de sinónimos o palabras redundantes (por ejemplo, 'computadora' en lugar de 'teclado', 'monitor', 'laptop', 'computadora').\n 4. No debo proporcionar demasiados detalles, solo los nombres de los objetos. \n 5. Siempre debo comenzar la respuesta con "Se ha identificado..."  6.No debo hacer sugerencias o inferencias"""
             contexto = f"""Soy un asistente encargado de leer el siguiente texto: "{text}". Mi tarea es generar una descripción breve que mencione únicamente los nombres de los objetos identificados en español, debo seguir las siguientes instrucciones: {instrucciones}, un ejemplo del texto generado es: {salida_esperada}"""
 
         elif language == 'en':

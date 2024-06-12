@@ -45,16 +45,15 @@ def clean_labels(initialLabels):
     filtered_names = []
     parent_names = set()
     identified_names = set()
-    delectlist=['Lighting','Lightings','Photography']
+    delectlist=['Lighting','Lightings','Photography', 'Head', 'Human', 'Face','Electronics','Hardware','Portrait','Arm','Leg','Animal']
+     
 
     for obj in initialLabels:
         for parent in obj['Parents']:
             parent_names.add(parent['Name'])
         identified_names.add(obj['Name'])
-
-    for obj in initialLabels:
         if obj['Confidence'] > 80 and obj['Name'] not in delectlist: 
-            if (obj['Name'] not in parent_names and not obj['Parents'] ) or (obj['Name'] in parent_names and not obj['Parents']): 
+            if (obj['Name'] not in parent_names ) or (obj['Name'] in parent_names and not obj['Parents']): 
                 if obj['Name'] in identified_names:  
                     if not any(category['Name'] in ["Colors and Visual Composition"] for category in obj['Categories']):
                         filtered_names.append(obj['Name'])
