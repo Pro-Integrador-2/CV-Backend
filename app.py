@@ -12,7 +12,6 @@ from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 from textgenerate import make_script, make_script_welcome
 from voicegenerate import make_voice
-from label_comparation import make_label_comparison
 from image_verify import compare_images
 
 app = Flask(__name__)
@@ -67,20 +66,13 @@ def handle_upload_image(data):
     try:
         image_bytes = base64.b64decode(image_data)
         if image_bytes:
-
-
             current_time = datetime.utcnow()
             session_id = request.sid
 
             if session_id in connections:
-                #last_detection = connections[session_id]['last_detection']
                 last_image = connections[session_id]['last_image']
                 last_update = connections[session_id]['last_update']
-
-
                 comparison_result = compare_images(last_image, image_bytes) if last_image else True
-
-                print (comparison_result)
 
                 if comparison_result or current_time - last_update > timedelta(minutes=1):
                     labels = detect_labels_in_image(image_bytes)
