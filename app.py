@@ -37,6 +37,14 @@ def handle_disconnect():
     if session_id in connections:
         del connections[session_id]
 
+def clean_labels(initialLabels):
+    filtered_names = []
+
+    for obj in initialLabels:
+        if not obj['Parents'] and not any(category['Name'] == "Colors and Visual Composition" for category in obj['Categories']):
+            filtered_names.append(obj['Name'])
+
+    return filtered_names
 
 def detect_labels_in_image(image_bytes):
     client = boto3.client('rekognition', region_name="us-east-1",
@@ -47,7 +55,10 @@ def detect_labels_in_image(image_bytes):
         MaxLabels=10,
         MinConfidence=75
     )
-    return json.dumps(response['Labels'])
+    labels = response['Labels']
+    filtered_labels = clean_labels(labels)
+
+    return json.dumps(filtered_labels)
 
 
 @socketio.on('upload_image')
