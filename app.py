@@ -41,8 +41,8 @@ def clean_labels(initialLabels):
     filtered_names = []
 
     for obj in initialLabels:
-        if not obj['Parents'] and not any(category['Name'] == "Colors and Visual Composition" for category in obj['Categories']):
-            filtered_names.append(obj['Name'])
+        if obj['Confidence'] > 80 and not any(category['Name'] == "Colors and Visual Composition" for category in obj['Categories']):
+            filtered_names.append(obj)
 
     return filtered_names
 
