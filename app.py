@@ -42,8 +42,9 @@ def clean_labels(initialLabels):
     addfilter=('Electronics', 'Hardware', 'Head', 'Face', )
 
     for obj in initialLabels:
-        if not obj['Name'] in addfilter and not any(category['Name'] == "Colors and Visual Composition" for category in obj['Categories']):
-            filtered_names.append(obj)
+      if not obj['Name'] in addfilter and not any(category['Name'] == "Colors and Visual Composition" for category in obj['Categories']):
+
+    filtered_names.append(obj)
 
     return filtered_names
 
