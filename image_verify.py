@@ -21,6 +21,9 @@ def compare_images(image1_bytes, image2_bytes):
     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
     matches = bf.match(descriptors1, descriptors2)
 
+    if len(matches) == 0:
+        return False
+
     # Ordenar las coincidencias según la distancia
     matches = sorted(matches, key=lambda x: x.distance)
 
